@@ -46,7 +46,7 @@ public class Response<T> {
     }
 
     public Response generalFail(String message) {
-        return generalFail(ErrorCode.SUCCESS.getErrorCode(), ErrorCode.GENERALFAIL.getErrorMessage());
+        return generalFail(ErrorCode.GENERALFAIL.getErrorCode(), message);
     }
 
 }
