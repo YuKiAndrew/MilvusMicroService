@@ -2,7 +2,13 @@ package com.ai.boost.service.impl;
 
 import com.ai.boost.helper.common.FluentMap;
 import com.ai.boost.helper.common.GlobalParameter;
+import com.ai.boost.model.CarModel;
 import com.ai.boost.service.InsertService;
+
+import com.google.gson.FieldNamingPolicy;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 import io.milvus.client.MilvusServiceClient;
 import io.milvus.grpc.DataType;
 import io.milvus.grpc.DescribeCollectionResponse;
@@ -14,6 +20,8 @@ import io.milvus.param.R;
 import io.milvus.param.RpcStatus;
 import io.milvus.param.collection.*;
 import io.milvus.param.dml.InsertParam;
+import io.milvus.param.highlevel.dml.InsertRowsParam;
+import io.milvus.param.highlevel.dml.response.InsertResponse;
 import io.milvus.param.index.CreateIndexParam;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +35,8 @@ public class InsertServiceImpl implements InsertService {
 
     @Autowired
     private MilvusServiceClient milvusServiceClient;
+
+
 
     @Override
     public int insertDemoFromSpecificDirectory() {
@@ -44,7 +54,7 @@ public class InsertServiceImpl implements InsertService {
                         .withAutoID(false)
                         .build();
         FieldType carModel = FieldType.newBuilder()
-                .withName("car_model")
+                    .withName("car_model")
                 .withDataType(DataType.VarChar)
                 .withTypeParams(new FluentMap<String,String>().chainPut("max_length","100")).build();
         FieldType carMake = FieldType.newBuilder()
@@ -82,16 +92,20 @@ public class InsertServiceImpl implements InsertService {
             List<String> carMakeArr = new ArrayList<>();
             List<String> carModelArr = new ArrayList<>();
             List<List<Float>> carInfoArr = new ArrayList<>();
+            List<JsonObject> entityList= new ArrayList<>();
             for (long i = r * singleNum; i < (r + 1) * singleNum; ++i) {
+                CarModel cm = new CarModel();
                 carIdArr.add(i);
                 int index = random.nextInt(GlobalParameter.CAR_MAKER.length);
                 carMakeArr.add(GlobalParameter.CAR_MAKER[index]);
                 List<String> strings = GlobalParameter.CAR_MODEL.get(GlobalParameter.CAR_MAKER[index]);
                 if (strings == null) {
                     carModelArr.add("null");
+                    cm.setCarModel("null");
                 } else {
                     int moIndex = random.nextInt(strings.size());
                     carModelArr.add(strings.get(moIndex));
+                    cm.setCarModel(strings.get(moIndex));
                 }
 
                 List<Float> vector = new ArrayList<>();
@@ -99,6 +113,10 @@ public class InsertServiceImpl implements InsertService {
                     vector.add(random.nextFloat());
                 }
                 carInfoArr.add(vector);
+                cm.setCarId(i + 2000);
+                cm.setCarMake(GlobalParameter.CAR_MAKER[index]);
+                cm.setCarVector(vector);
+                entityList.add(GlobalParameter.GSON.toJsonTree(cm).getAsJsonObject());
             }
             List<InsertParam.Field> fields = new ArrayList<>();
             fields.add(new InsertParam.Field(idType.getName(), carIdArr));
@@ -109,10 +127,17 @@ public class InsertServiceImpl implements InsertService {
                     .withCollectionName(GlobalParameter.COLLECTION_NAME)
                     .withFields(fields)
                     .build();
+            InsertRowsParam insertRowsParam = InsertRowsParam.newBuilder().withRows(entityList).withCollectionName(GlobalParameter.COLLECTION_NAME).build();
+            R<InsertResponse> insert = milvusServiceClient.insert(insertRowsParam);
             long startTime = System.currentTimeMillis();
             R<MutationResult> insertR = milvusServiceClient.insert(insertParam);
             if (!(insertR.getStatus() == 0)) {
+                log.error("fields insert failed");
                 throw new RuntimeException(insertR.getMessage());
+            }
+            if (!(insert.getStatus() == 0)) {
+                log.error("rows insert failed");
+                throw new RuntimeException(insert.getMessage());
             }
             long endTime = System.currentTimeMillis();
             insertTotalTime += (endTime - startTime) / 1000;
@@ -126,6 +151,7 @@ public class InsertServiceImpl implements InsertService {
                 .withSyncFlushWaitingTimeout(30L)
                 .build());
         if (!(flush.getStatus() == 0)) {
+            log.error("flush process failed");
             throw new RuntimeException(flush.getMessage());
         }
 
@@ -142,7 +168,8 @@ public class InsertServiceImpl implements InsertService {
                         .build());
 
         if (!(indexR.getStatus() == 0)) {
-            throw new RuntimeException(flush.getMessage());
+            log.error("build index failed");
+            throw new RuntimeException(indexR.getMessage());
         }
 
         R<RpcStatus> rpcStatusR = milvusServiceClient.loadCollection(LoadCollectionParam.newBuilder()
@@ -153,7 +180,8 @@ public class InsertServiceImpl implements InsertService {
                 .build());
 
         if (!(rpcStatusR.getStatus() == 0)) {
-            throw new RuntimeException(flush.getMessage());
+            log.error("load data failed");
+            throw new RuntimeException(rpcStatusR.getMessage());
         }
         return 1;
     }
