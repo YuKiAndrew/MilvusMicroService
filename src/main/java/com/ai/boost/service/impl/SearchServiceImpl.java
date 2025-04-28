@@ -4,20 +4,16 @@ import com.ai.boost.helper.common.ArrayListStream;
 import com.ai.boost.helper.common.GlobalParameter;
 import com.ai.boost.helper.helper.ServiceHelper;
 import com.ai.boost.model.CarModel;
+import com.ai.boost.model.Resp.BulkResp;
+import com.ai.boost.model.req.BulkSearchRequest;
 import com.ai.boost.model.req.SearchRequest;
 import com.ai.boost.service.SearchService;
-import io.milvus.client.MilvusClient;
 import io.milvus.client.MilvusServiceClient;
-import io.milvus.grpc.FieldData;
-import io.milvus.grpc.SearchIteratorV2Results;
-import io.milvus.grpc.SearchResultData;
 import io.milvus.grpc.SearchResults;
 import io.milvus.param.R;
 import io.milvus.param.dml.SearchParam;
-import io.milvus.response.SearchResultsWrapper;
 import io.milvus.v2.client.MilvusClientV2;
 import io.milvus.v2.service.vector.request.SearchReq;
-import io.milvus.v2.service.vector.request.data.BaseVector;
 import io.milvus.v2.service.vector.request.data.FloatVec;
 import io.milvus.v2.service.vector.response.SearchResp;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,7 +46,7 @@ public class SearchServiceImpl implements SearchService {
                 .withTopK(3)
                 .withOutFields(Arrays.asList("car_id", "car_model", "car_make", "car_vector"))
                 .build();
-        R<SearchResults> searchResp =milvusServiceClient.search(searchReqMilvus);
+        R<SearchResults> searchResp = milvusServiceClient.search(searchReqMilvus);
         List<CarModel> list = new ArrayList<>();
 
         if(searchResp.getStatus() == R.Status.Success.getCode()){
@@ -83,5 +79,26 @@ public class SearchServiceImpl implements SearchService {
             }
         }
         return list;
+    }
+
+    @Override
+    public List<BulkResp> searchServicesByBulk(BulkSearchRequest bulkSearchRequest) {
+        SearchParam searchParam = SearchParam.newBuilder()
+                .withCollectionName(GlobalParameter.COLLECTION_NAME)
+                .withVectorFieldName("car_vector")
+                .withFloatVectors(bulkSearchRequest.getSearchList())
+                .withTopK(3)
+                .withOutFields(Arrays.asList("car_id", "car_model", "car_make", "car_vector"))
+                .build();
+        R<SearchResults> search = milvusServiceClient.search(searchParam);
+        List<BulkResp> bulkResps = new ArrayList<>();
+        if (search.getStatus() ==  R.Status.Success.getCode()) {
+            SearchResults resp = search.getData();
+            if(!resp.hasResults()){ //判断是否查到结果
+                return new ArrayList<>();
+            }
+             bulkResps = serviceHelper.obtainBulkResp(resp);
+        }
+        return bulkResps;
     }
 }

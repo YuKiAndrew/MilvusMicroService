@@ -2,6 +2,8 @@ package com.ai.boost.controller;
 
 import com.ai.boost.helper.common.Response;
 import com.ai.boost.model.CarModel;
+import com.ai.boost.model.Resp.BulkResp;
+import com.ai.boost.model.req.BulkSearchRequest;
 import com.ai.boost.model.req.SearchRequest;
 import com.ai.boost.service.SearchService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +30,13 @@ public class SearchController {
     public Response obtainFromV2(@RequestBody SearchRequest searchRequest) {
         List<CarModel> carModels = searchService.searchServicesByVectorSec(searchRequest);
         return new Response<>().success(carModels);
+    }
+
+    @RequestMapping(value = "/bulkVectorSearch", method = RequestMethod.POST)
+    @ResponseBody
+    public Response bulkVectorSearch(@RequestBody BulkSearchRequest bulkSearchRequest) {
+        List<BulkResp> bulkResps = searchService.searchServicesByBulk(bulkSearchRequest);
+        return new Response<>().success(bulkResps);
     }
 
 }
