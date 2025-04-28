@@ -9,6 +9,7 @@ import java.util.List;
 
 @Component
 public class ServiceHelper {
+    @SuppressWarnings("unchecked")
     public void obtainCarMakeList(List<CarModel> list, SearchResults resp) {
 
         SearchResultsWrapper wrapperSearch = new SearchResultsWrapper(resp.getResults());
