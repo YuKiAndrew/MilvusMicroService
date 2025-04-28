@@ -16,14 +16,14 @@ public class SearchController {
     @Autowired
     private SearchService searchService;
 
-    @RequestMapping(value = "/obtain", method = RequestMethod.POST)
+    @RequestMapping(value = "/topkQuery", method = RequestMethod.POST)
     @ResponseBody
     public Response obtain(@RequestBody SearchRequest searchRequest) {
         List<CarModel> carModels = searchService.searchServicesByVector(searchRequest);
         return new Response<>().success(carModels);
     }
 
-    @RequestMapping(value = "/obtainFromV2", method = RequestMethod.POST)
+    @RequestMapping(value = "/topkQueryWithV2", method = RequestMethod.POST)
     @ResponseBody
     public Response obtainFromV2(@RequestBody SearchRequest searchRequest) {
         List<CarModel> carModels = searchService.searchServicesByVectorSec(searchRequest);
