@@ -62,7 +62,7 @@ public class InsertServiceImpl implements InsertService {
                 .withDataType(DataType.VarChar)
                 .withTypeParams(new FluentMap<String,String>().chainPut("max_length","100")).build();
         FieldType carV = FieldType.newBuilder()
-                .withName("car_vector")
+                    .withName("car_vector")
                 .withDataType(DataType.FloatVector)
                 .withDimension(dimension)
                 .build();
