@@ -2,12 +2,18 @@ package com.ai.boost.helper.helper;
 
 import com.ai.boost.model.CarModel;
 import com.ai.boost.model.Resp.BulkResp;
+import com.google.protobuf.Descriptors;
+import io.milvus.grpc.FieldData;
+import io.milvus.grpc.QueryResults;
 import io.milvus.grpc.SearchResults;
+import io.milvus.response.QueryResultsWrapper;
 import io.milvus.response.SearchResultsWrapper;
+import org.checkerframework.checker.units.qual.C;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Component
 public class ServiceHelper {
@@ -54,5 +60,23 @@ public class ServiceHelper {
             result.add(bulkResp);
         }
         return result;
+    }
+
+    public List<CarModel> obtainResult(QueryResults data) {
+        List<CarModel> list = new ArrayList<>();
+        QueryResultsWrapper qrw = new QueryResultsWrapper(data);
+        List<Long> carId = (List<Long>) qrw.getFieldWrapper("car_id").getFieldData();
+        List<String> carModel = (List<String>) qrw.getFieldWrapper("car_model").getFieldData();
+        List<String> carMake = (List<String>) qrw.getFieldWrapper("car_make").getFieldData();
+        List<List<Float>> carVector = (List<List<Float>>) qrw.getFieldWrapper("car_vector").getFieldData();
+        for(int i = 0; i < carId.size(); i++) {
+            CarModel cm = new CarModel();
+            cm.setCarId(carId.get(0));
+            cm.setCarMake(carMake.get(0));
+            cm.setCarModel(carModel.get(0));
+            cm.setCarVector(carVector.get(0));
+            list.add(cm);
+        }
+        return list;
     }
 }

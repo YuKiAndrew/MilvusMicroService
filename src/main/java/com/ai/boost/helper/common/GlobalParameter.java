@@ -72,4 +72,7 @@ public final class GlobalParameter {
             .chainPut("Aston Martin", Arrays.asList("Vantage", "DB11", "DBS", "DBX"));
 
     public final static Gson GSON = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES).create();
+    public static final String CAR_ID_FIELD = "car_id";
+    public static final String SPACE = " ";
+    public static final String EQUAL = "==";
 }

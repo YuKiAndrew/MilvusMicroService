@@ -6,15 +6,19 @@ import com.ai.boost.helper.helper.ServiceHelper;
 import com.ai.boost.model.CarModel;
 import com.ai.boost.model.Resp.BulkResp;
 import com.ai.boost.model.req.BulkSearchRequest;
+import com.ai.boost.model.req.OneRowQueryReq;
 import com.ai.boost.model.req.SearchRequest;
 import com.ai.boost.service.SearchService;
 import io.milvus.client.MilvusServiceClient;
+import io.milvus.grpc.QueryResults;
 import io.milvus.grpc.SearchResults;
 import io.milvus.param.R;
+import io.milvus.param.dml.QueryParam;
 import io.milvus.param.dml.SearchParam;
 import io.milvus.v2.client.MilvusClientV2;
 import io.milvus.v2.service.vector.request.SearchReq;
 import io.milvus.v2.service.vector.request.data.FloatVec;
+import io.milvus.v2.service.vector.response.QueryResp;
 import io.milvus.v2.service.vector.response.SearchResp;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -94,11 +98,23 @@ public class SearchServiceImpl implements SearchService {
         List<BulkResp> bulkResps = new ArrayList<>();
         if (search.getStatus() ==  R.Status.Success.getCode()) {
             SearchResults resp = search.getData();
-            if(!resp.hasResults()){ //判断是否查到结果
+            if(!resp.hasResults()){
                 return new ArrayList<>();
             }
              bulkResps = serviceHelper.obtainBulkResp(resp);
         }
         return bulkResps;
+    }
+
+    @Override
+    public List<CarModel> oneRowQuery(OneRowQueryReq oneRowQueryReq) {
+        QueryParam sp = QueryParam.newBuilder().withExpr(GlobalParameter.CAR_ID_FIELD + GlobalParameter.SPACE + GlobalParameter.EQUAL + GlobalParameter.SPACE + oneRowQueryReq.getId())
+                .withCollectionName(GlobalParameter.COLLECTION_NAME)
+                .withOutFields(Arrays.asList("*"))
+                .build();
+        R<QueryResults> result = milvusServiceClient.query(sp);
+        QueryResults data = result.getData();
+        List<CarModel> list = serviceHelper.obtainResult(data);
+        return list;
     }
 }
